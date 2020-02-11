@@ -1,45 +1,29 @@
-import java.util.Random;
+import java.util.*;
 
-import static java.lang.Math.sqrt;
+import static java.lang.Math.*;
 
 public class MainClass {
+
+    public static final double DELTA_THRESH = 0.01;
+    public static final int MAX_ITERS = 150;
+
+    public static final DataCluster cluster1 = new DataCluster(1,100,0.1,250);
+    public static final DataCluster cluster2 = new DataCluster(6,100,0.1,250);
+
     public static void main(String[] args) {
-        double firstClusterCenter = 0.0;
-        double secondClusterCenter = 6.0;
+        RandomDataGenerator randomDataGenerator = new RandomDataGenerator(cluster1,cluster2);
+        double[] data = randomDataGenerator.genData();
+        double[] randomVals = getRandomVals(data,2);
 
-        Random random = new Random();
-
-        int cluster1Size = 250;
-        int cluster2Size = 250;
-
-        double cluster1NoiseRange = 0.5;
-        double cluster2NoiseRange = 0.5;
-
-        double cluster1Variance = 0.2;
-        double cluster2Variance = 0.2;
-
-        double[] data = new double[cluster1Size+cluster2Size];
-
-        //Generate example data
-        for (int i = 0; i < cluster1Size; i++) {
-            data[i] = Math.max(0,random.nextGaussian() * cluster1Variance + firstClusterCenter);
-            data[i] = data[i] > firstClusterCenter + cluster1NoiseRange ? firstClusterCenter + cluster1NoiseRange : Math.max(firstClusterCenter - cluster1NoiseRange, data[i]);
-        }
-        for (int i = cluster1Size; i < cluster1Size+cluster2Size; i++) {
-            data[i] = Math.max(0,random.nextGaussian() * cluster2Variance + secondClusterCenter);
-            data[i] = data[i] > secondClusterCenter + cluster2NoiseRange ? secondClusterCenter + cluster2NoiseRange : Math.max(secondClusterCenter - cluster2NoiseRange, data[i]);
-        }
-
-        int usedI = random.nextInt(cluster1Size+cluster2Size);
-        int nextI = usedI;
-        while(nextI == usedI) {
-            nextI = random.nextInt(cluster1Size+cluster2Size);
-        }
-
+        //Init stage, select 2 data points as means, then set the variance to the variance of the data.
         double variance = 0;
         double mean = 0;
-        for(double d: data) {
+        double maxVal = 0;
+        double minVal = Double.POSITIVE_INFINITY;
+        for(double d : data) {
             mean += d;
+            maxVal = max(d, maxVal);
+            minVal = min(d, minVal);
         }
         mean /= data.length;
 
@@ -48,13 +32,48 @@ public class MainClass {
         }
         variance /= data.length;
 
-        Gaussian blob1Init = new Gaussian(data[usedI],sqrt(variance));
-        Gaussian blob2Init = new Gaussian(data[nextI],sqrt(variance));
+        double avg = (maxVal+minVal)/2.0;
+        double init1 = (minVal+avg)/2.0;
+        double init2 = (maxVal+avg)/2.0;
 
-        System.out.println(data[usedI]);
-        System.out.println(data[nextI]);
+        Gaussian blob1Init = new Gaussian(init1,sqrt(variance));
+        Gaussian blob2Init = new Gaussian(init2,sqrt(variance));
+
+        BimodalModel model = new BimodalModel(blob1Init,blob2Init);
+
+        //Expectation-Maximization Stage, calculation the probability that each data point belongs to each distribution.
+        int iterations = 0;
+        while(model.getMaxDelta() < DELTA_THRESH && iterations < MAX_ITERS) {
+            for (double datapoint : data) {
+                model.updateModel(datapoint);
+            }
+
+            model.finishUpdate(data.length);
+            iterations++;
+        }
+
+        double divider = (model.getBlob1().getMean() + model.getBlob2().getMean())/2.0;
 
 
-        new DylansGrapher(data,new BimodalModel(blob1Init, blob2Init));
+        System.out.println(divider);
+
+        new DylansGrapher(data,model,divider);
+    }
+
+    public static double[] getRandomVals(double[] data, int numVals) {
+        Random random = new Random();
+        Set<Double> nonDuplicateSet = new HashSet<>();
+        for(double datapoint : data) {
+            nonDuplicateSet.add(datapoint);
+        }
+        List<Double> nonDuplicates = new ArrayList<>(nonDuplicateSet);
+
+        double[] outputVals = new double[numVals];
+        for (int i = 0; i < numVals ; i++) {
+            int randIdx = random.nextInt(nonDuplicates.size());
+            outputVals[i] = nonDuplicates.get(i);
+            nonDuplicates.remove(i);
+        }
+        return outputVals;
     }
 }
