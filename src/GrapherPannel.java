@@ -15,6 +15,7 @@ public class GrapherPannel extends JPanel {
     double kernalMin;
     double min;
     boolean addLine2 = false;
+    boolean grafFunc;
     double lineAt;
 
     double[] data;
@@ -23,15 +24,16 @@ public class GrapherPannel extends JPanel {
 
     int[] pointsAt;
 
-    GrapherPannel(JFrame frame,double[] data, BimodalModel resaults){
+    GrapherPannel(JFrame frame,double[] data, BimodalModel resaults, boolean grafFunc){
         this.data = data;
         this.results = resaults;
         this.frame = frame;
+        this.grafFunc = grafFunc;
         drawGraph();
     }
 
-    GrapherPannel(JFrame frame,double[] data, BimodalModel resaults, double lineAt){
-        this(frame,data,resaults);
+    GrapherPannel(JFrame frame,double[] data, BimodalModel resaults, double lineAt, boolean grafFunc){
+        this(frame,data,resaults, grafFunc);
         addLine2 = true;
         this.lineAt = lineAt;
     }
@@ -40,7 +42,9 @@ public class GrapherPannel extends JPanel {
     public void paintComponent(Graphics g){
         g.setColor(new Color(255,255,255));
         g.drawRect(0,0, GrapherPannel.WIDTH, GrapherPannel.HEIGHT);
-        drawFunction(g);
+        if(grafFunc) {
+            drawFunction(g);
+        }
         drawPoints(g);
         addLabels();
         if(addLine2){
