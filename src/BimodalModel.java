@@ -40,10 +40,6 @@ public class BimodalModel {
     public void finishUpdate(int numberDatapoints) {
         calcMaxDelta(numberDatapoints);
 
-        System.out.println("primary");
-        System.out.println(getBlob1());
-        System.out.println(getBlob2());
-
         weight1 = gammaSum1/numberDatapoints;
         weight2 = gammaSum2/numberDatapoints;
 
@@ -52,10 +48,6 @@ public class BimodalModel {
 
         blob1.setVariance(gammaVarianceSum1/gammaSum1);
         blob2.setVariance(gammaVarianceSum2/gammaSum2);
-
-        System.out.println("secondary");
-        System.out.println(getBlob1());
-        System.out.println(getBlob2());
 
         resetSums();
     }

@@ -8,8 +8,8 @@ public class MainClass {
     public static final double MEAN_MIN_DELTA = 3;
     public static final int ITERS = 20;
 
-    public static final DataCluster cluster1 = new DataCluster(9,100,0.5,500);
-    public static final DataCluster cluster2 = new DataCluster(6,100,0.5,500);
+    public static final DataCluster cluster1 = new DataCluster(5,100,0.5,500);
+    public static final DataCluster cluster2 = new DataCluster(11,100,0.5,500);
 
     public static void main(String[] args) {
         RandomDataGenerator randomDataGenerator = new RandomDataGenerator(cluster1,cluster2);
@@ -39,40 +39,39 @@ public class MainClass {
 
         double avgDivider = 0;
         int iterations = 0;
-        while(iterations < ITERS) {
 
             double[] randomVals = getRandomVals(data,2);
 
-            System.out.println(randomVals[0]);
-            System.out.println(randomVals[1]);
+            //System.out.println(randomVals[0]);
+            //System.out.println(randomVals[1]);
 
 
-            Gaussian blob1Init = new Gaussian(randomVals[0], sqrt(variance));
-            Gaussian blob2Init = new Gaussian(randomVals[1], sqrt(variance));
+            Gaussian blob1Init = new Gaussian(minVal, sqrt(variance));
+            Gaussian blob2Init = new Gaussian(maxVal, sqrt(variance));
 
             BimodalModel model = new BimodalModel(blob1Init, blob2Init);
 
             //Expectation-Maximization Stage, calculation the probability that each data point belongs to each distribution.
-            while (model.getMaxDelta() < DELTA_THRESH) {
+            while (model.getMaxDelta() > DELTA_THRESH) {
                 for (double datapoint : data) {
                     model.updateModel(datapoint);
                 }
 
                 model.finishUpdate(data.length);
-            }
-            if(abs(model.getBlob1().getMean() - model.getBlob2().getMean()) < MEAN_MIN_DELTA) {
-                continue;
+
+                System.out.println(model.getMaxDelta());
             }
 
             double divider = (model.getBlob1().getMean() + model.getBlob2().getMean()) / 2.0;
-            new DylansGrapher(data,model,divider,true);
+            new DylansGrapher(data,model,true);
+
+
+            System.out.println(divider);
 
             avgDivider += divider;
             iterations++;
-        }
-        avgDivider /= ITERS;
 
-        System.out.println(avgDivider);
+        System.out.println(divider);
 
     }
 
