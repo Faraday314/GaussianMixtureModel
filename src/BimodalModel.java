@@ -1,16 +1,15 @@
 import static java.lang.Math.abs;
-import static java.lang.Math.pow;
 
 public class BimodalModel {
 
-    private Gaussian blob1, blob2;
+    private Gaussian1d blob1, blob2;
     private double weight1, weight2;
     private double gammaSum1, gammaProductSum1, gammaVarianceSum1;
     private double gammaSum2, gammaProductSum2, gammaVarianceSum2;
 
     private double maxDelta;
 
-    public BimodalModel(Gaussian blob1, Gaussian blob2) {
+    public BimodalModel(Gaussian1d blob1, Gaussian1d blob2) {
         this.blob1 = blob1;
         this.blob2 = blob2;
 
@@ -52,11 +51,11 @@ public class BimodalModel {
         resetSums();
     }
 
-    public Gaussian getBlob1() {
+    public Gaussian1d getBlob1() {
         return blob1;
     }
 
-    public Gaussian getBlob2() {
+    public Gaussian1d getBlob2() {
         return blob2;
     }
 

@@ -2,55 +2,36 @@ import static java.lang.Math.*;
 import static java.lang.StrictMath.sqrt;
 
 public class Gaussian {
-    private static final double EQUALITY_THRESHOLD = 0.001;
-    private double mean, standardDeviation;
-    public Gaussian(double mean, double standardDeviation) {
+    private Matrix mean, covariance;
+    private int dimensionality;
+    public Gaussian(Matrix mean, Matrix covariance) {
         this.mean = mean;
-        this.standardDeviation = standardDeviation;
+        this.covariance = covariance;
+        dimensionality = mean.getRows();
     }
 
-    public double getValue(double x) {
-        return (1.0/(standardDeviation*sqrt(2*PI)))*exp(-0.5*pow((x-mean)/standardDeviation,2));
+    public double getValue(Matrix x) {
+        return 1.0/(pow(2*PI,dimensionality/2.0)*sqrt(covariance.determinant()))*exp(-0.5*(x.subtract(mean).transpose().multiply(covariance.inverse()).multiply(x.subtract(mean)).trace()));
     }
 
-    public double getMean() {
+    public Matrix getMean() {
         return mean;
     }
 
-    public double getStandardDeviation() {
-        return standardDeviation;
+    public Matrix getCovarianceMatrix() {
+        return covariance;
     }
 
-    public double getVariance() {
-        return standardDeviation*standardDeviation;
+    public void setCovarianceMatrix(Matrix covariance) {
+         this.covariance = covariance;
     }
 
-    public void setVariance(double variance) {
-        standardDeviation = sqrt(variance);
-    }
-
-    public void setMean(double mean) {
+    public void setMean(Matrix mean) {
         this.mean = mean;
-    }
-
-    public void setStandardDeviation(double standardDeviation) {
-        this.standardDeviation = standardDeviation;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        Gaussian gaussian;
-        if(!(obj instanceof Gaussian)) {
-            return false;
-        }
-        else {
-            gaussian = (Gaussian) obj;
-        }
-        return abs(mean-gaussian.getMean()) < EQUALITY_THRESHOLD && abs(standardDeviation-gaussian.getStandardDeviation()) < EQUALITY_THRESHOLD;
     }
 
     @Override
     public String toString() {
-        return "mean: "+mean+" standard deviation: "+standardDeviation;
+        return "mean: "+mean+" covariance: "+covariance;
     }
 }

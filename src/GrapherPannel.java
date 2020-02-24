@@ -80,7 +80,7 @@ public class GrapherPannel extends JPanel {
         for(int i = 0; i < frame.getWidth(); i++) {
             kernalOuts[i] = results.getValue(min + i * step);
         }
-        kernalMax =max(kernalOuts);
+        kernalMax = max(kernalOuts);
         kernalMin = min(kernalOuts);
         for(int i = 0; i < frame.getWidth(); i++){
             g.drawRect(i,frame.getHeight(), 1, getScaledValues(results, min + i * step));

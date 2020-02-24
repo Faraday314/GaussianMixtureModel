@@ -17,7 +17,7 @@ public class RandomDataGenerator {
                 data[j] = Math.max(0,random.nextGaussian() * clusters[i].getVariance() + clusters[i].getCenter());
                 data[j] = data[j] > clusters[i].getCenter() + clusters[i].getNoiseRange() ? clusters[i].getCenter() + clusters[i].getNoiseRange() : Math.max(clusters[i].getCenter() - clusters[i].getNoiseRange(), data[j]);
             }
-            lengthSum =+ clusters[i].getNumPoints();
+            lengthSum += clusters[i].getNumPoints();
         }
 
         return data;
