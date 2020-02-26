@@ -23,20 +23,32 @@ public class MainClass {
         double[] yData = randomDataGenerator.genData();
 
         Matrix wham = new Matrix(new double[][]{
-                {1,0,0},
+                {1,1,1},
                 {0,1,0},
                 {0,0,1},
         });
 
         Matrix kabam = new Matrix(new double[][]{
-                {2,2,2},
-                {1,3,3},
-                {3,3,4}
+                {1.1,2,3.3,4,5.7,-11,-10.2,-9,-8,-7},
+                {1,2.2,3,4.5,5,-11,-10,-9,-8.3,-7}
         });
 
-        Matrix[] vectors = kabam.splitToVectors();
+        Matrix[] vectors = wham.splitToVectors();
         Gaussian g = new Gaussian(vectors[0],wham);
-        g.getValue(vectors[1]);
+        //g.getValue(vectors[1]);
+
+        GaussianMixtureModel model = new GaussianMixtureModel(2,2);
+        model.train(0.1,kabam);
+
+        Matrix[] eigs1 = model.getGaussian(0).getCovarianceMatrix().calcEigenvectorsNonNorm();
+        Matrix[] eigs2 = model.getGaussian(1).getCovarianceMatrix().calcEigenvectorsNonNorm();
+
+        System.out.println(model.getGaussian(0));
+        System.out.println(model.getGaussian(1));
+        System.out.println(Arrays.toString(eigs1));
+        System.out.println();
+        System.out.println(Arrays.toString(eigs2));
+
 
         /*
         GaussianMixtureModel model = new GaussianMixtureModel(3);

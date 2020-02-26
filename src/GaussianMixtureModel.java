@@ -1,102 +1,115 @@
 import java.util.*;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.max;
+import static java.lang.Math.*;
 
 public class GaussianMixtureModel {
     private double maxDelta;
-    private int k;
-    private double[] weights, gammaSums, gammaProductSums, gammaVarianceSums;
+    private int k, dimensionality;
+    private double logLikelihoodSum, logLikelihood;
+    private double[] weights, gammaSums;
+    private Matrix[] gammaProductSums, gammaVarianceSums;
     private Gaussian[] gaussians;
-    public GaussianMixtureModel(int k) {
+    public GaussianMixtureModel(int k, int dimensionality) {
         this.k = k;
+        this.dimensionality = dimensionality;
+
+        logLikelihoodSum = 0;
+        logLikelihood = Double.NEGATIVE_INFINITY;
 
         gaussians = new Gaussian[k];
         weights = new double[k];
         gammaSums = new double[k];
-        gammaProductSums = new double[k];
-        gammaVarianceSums = new double[k];
+        gammaProductSums = new Matrix[k];
+        gammaVarianceSums = new Matrix[k];
 
         for (int i = 0; i < k; i++) {
             weights[i] = 1.0/k;
             gammaSums[i] = 0;
-            gammaProductSums[i] = 0;
-            gammaVarianceSums[i] = 0;
+            gammaProductSums[i] = Matrix.zeroVector(dimensionality);
+            gammaVarianceSums[i] = Matrix.zeroMatrix(dimensionality);
         }
 
         maxDelta = Double.POSITIVE_INFINITY;
     }
 
-    public double getValue(double x) {
+    public double getValue(Matrix x) {
         double sum = 0;
         for(int i = 0; i < k; i++) {
             sum += weights[i]*gaussians[i].getValue(x);
         }
         return sum;
     }
-/*
-    public void updateModel(double x) {
+
+    public void updateModel(Matrix x) {
         for (int i = 0; i < k; i++) {
             double gamma = getBlobGamma(x, i);
 
             gammaSums[i] += gamma;
-            gammaProductSums[i] += gamma*x;
-            gammaVarianceSums[i] += gamma*(x-gaussians[i].getMean())*(x-gaussians[i].getMean());
+            gammaProductSums[i] = gammaProductSums[i].add(x.multiplyScalar(gamma));
+            gammaVarianceSums[i] = gammaVarianceSums[i].add(x.subtract(gaussians[i].getMean()).multiply(x.subtract(gaussians[i].getMean()).transpose()).multiplyScalar(gamma));
+
+            logLikelihoodSum += log(getValue(x));
         }
     }
 
     public void finishUpdate(int numberDatapoints) {
-        calcMaxDelta(numberDatapoints);
+        //calcMaxDelta(numberDatapoints);
         for (int i = 0; i < k; i++) {
             weights[i] = gammaSums[i]/numberDatapoints;
-            gaussians[i].setMean(gammaProductSums[i]/gammaSums[i]);
-            gaussians[i].setVariance(gammaVarianceSums[i]/gammaSums[i]);
+            gaussians[i].setMean(gammaProductSums[i].divideScalar(gammaSums[i]));
+            gaussians[i].setCovarianceMatrix(gammaVarianceSums[i].divideScalar(gammaSums[i]));
         }
+        logLikelihood = logLikelihoodSum;
         resetSums();
     }
-*/
+
     public void train(double deltaThreshold, Matrix data) {
         //Each column is a data point
 
-        int dimensionality = data.getRows();
         int numberPoints = data.getCols();
 
-        double[][] meanVal = new double[1][dimensionality];
+        double[][] meanVal = new double[dimensionality][1];
 
         for (int i = 0; i < numberPoints; i++) {
             for (int j = 0; j < dimensionality; j++) {
-                meanVal[0][j] += data.get(i,j);
+                meanVal[j][0] += data.get(j,i);
             }
         }
         Matrix mean = new Matrix(meanVal);
-        mean.divideScalar(numberPoints-1); //sample vs population
+        mean = mean.divideScalar(numberPoints); //sample vs population
+
 
         Matrix[] points = data.splitToVectors();
         Matrix covariance = Matrix.zeroMatrix(dimensionality);
-        double[][] covarianceVals = new double[dimensionality][dimensionality];
         for (int i = 0; i < numberPoints; i++) {
-            covariance.add(points[i].subtract(mean).transpose().multiply(points[i].subtract(mean)));
+            Matrix score = points[i].subtract(mean);
+            covariance = covariance.add(score.multiply(score.transpose()));
+            score.destroy();
         }
-        covariance.divideScalar(numberPoints-1);
+        covariance = covariance.divideScalar(numberPoints);
 
         Matrix[] randomlySelected = new Matrix[k];
         List<Integer> usedIndexes = new ArrayList<>();
-        for (int i = 0; i < k; i++) {
-            while(usedIndexes.size() < k) {
-                int randomIdx = getRandomIndex(numberPoints);
-                if(!usedIndexes.contains(randomIdx)) {
-                    usedIndexes.add(randomIdx);
-                    randomlySelected[i] = points[randomIdx];
-                }
+        int i = 0;
+        while(usedIndexes.size() < k) {
+            int randomIdx = getRandomIndex(numberPoints);
+            if(!usedIndexes.contains(randomIdx)) {
+                usedIndexes.add(randomIdx);
+                gaussians[i] = new Gaussian(points[randomIdx],covariance);
+                i++;
             }
         }
-/*
-        while(maxDelta > deltaThreshold) {
-            for(double datapoint : data) {
+
+        double delta = Double.POSITIVE_INFINITY;
+        while(delta > deltaThreshold) {
+            for (Matrix datapoint : points) {
                 updateModel(datapoint);
             }
-            finishUpdate(data.length);
-        }*/
+            double prevLogLikelihood = logLikelihood;
+            finishUpdate(points.length);
+            delta = logLikelihood - prevLogLikelihood;
+            System.out.println(logLikelihood);
+        }
     }
 
     private double[] selectNRandomValues(double[] data, int n) {
@@ -118,19 +131,20 @@ public class GaussianMixtureModel {
 
     private int getRandomIndex(int n) {
         Random random = new Random();
-        return random.nextInt(n);;
+        return random.nextInt(n);
     }
-/*
-    private double getBlobGamma(double x, int i) {
+
+    private double getBlobGamma(Matrix x, int i) {
         return (weights[i]*gaussians[i].getValue(x))/getValue(x);
     }
-*/
+
     private void resetSums() {
         for(int i = 0; i < k; i++) {
             gammaSums[i] = 0;
-            gammaProductSums[i] = 0;
-            gammaVarianceSums[i] = 0;
+            gammaProductSums[i] = Matrix.zeroVector(dimensionality);
+            gammaVarianceSums[i] = Matrix.zeroMatrix(dimensionality);
         }
+        logLikelihoodSum = 0;
     }
 /*
     private void calcMaxDelta(int numberDatapoints) {

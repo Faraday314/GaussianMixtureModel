@@ -1,6 +1,5 @@
 import org.opencv.core.*;
 import org.opencv.core.Mat;
-import org.opencv.face.FacemarkKazemi;
 
 import javax.print.attribute.standard.NumberUp;
 import java.util.HashSet;
@@ -107,10 +106,22 @@ public class Matrix {
         return eigenvectors;
     }
 
+    public Matrix[] calcEigenvectorsNonNorm() {
+        Mat eigenvectors = new Mat();
+        Mat eigenvals = new Mat();
+        Core.eigen(data,eigenvals,eigenvectors);
+        Matrix[] eigenvectorsMatrix = new Matrix(eigenvectors).splitToVectors();
+        for(int i = 0; i < eigenvals.rows(); i++) {
+             eigenvectorsMatrix[i] = eigenvectorsMatrix[i].multiplyScalar(eigenvals.get(i,0)[0]);
+        }
+
+        return eigenvectorsMatrix;
+    }
+
     public Matrix[] splitToVectors() {
         Matrix[] vectors = new Matrix[cols];
         for (int i = 0; i < cols; i++) {
-            double[][] vector = new double[3][1];
+            double[][] vector = new double[rows][1];
             for (int j = 0; j < rows; j++) {
                 vector[j][0] = data.get(j,i)[0];
             }
@@ -163,6 +174,14 @@ public class Matrix {
             for (int j = 0; j < size; j++) {
                 data[i][j] = 0;
             }
+        }
+        return new Matrix(data);
+    }
+
+    public static Matrix zeroVector(int size) {
+        double[][] data = new double[size][1];
+        for (int i = 0; i < size; i++) {
+            data[i][0] = 0;
         }
         return new Matrix(data);
     }
