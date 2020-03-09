@@ -17,34 +17,49 @@ public class MainClass {
     public static final DataCluster cluster2 = new DataCluster(11,100,0.5,100);
     public static final DataCluster cluster3 = new DataCluster(17,100,0.5,100);
     public static void main(String[] args) {
-        RandomDataGenerator randomDataGenerator = new RandomDataGenerator(cluster1);
+        RandomDataGenerator randomDataGenerator = new RandomDataGenerator(cluster1, cluster2,cluster3);
 
         double[] xData = randomDataGenerator.genData();
-        double[] yData = randomDataGenerator.genData();
 
-        Matrix wham = new Matrix(new double[][]{
-                {1,1,1},
-                {0,1,0},
-                {0,0,1},
-        });
+        double[] yData = new double[xData.length];
+        Random r = new Random();
+        for (int i = 0; i < xData.length; i++) {
+            yData[i] = xData[i]+r.nextGaussian();
+        }
 
-        Matrix kabam = new Matrix(new double[][]{
-                {1.1,2,3.3,4,5.7,-11,-10.2,-9,-8,-7},
-                {1,2.2,3,4.5,5,-11,-10,-9,-8.3,-7}
-        });
+        Matrix data = new Matrix(xData,yData);
 
-        Matrix[] vectors = wham.splitToVectors();
-        Gaussian g = new Gaussian(vectors[0],wham);
-        //g.getValue(vectors[1]);
-
-        GaussianMixtureModel model = new GaussianMixtureModel(2,2);
-        model.train(0.1,kabam);
+        GaussianMixtureModel model = new GaussianMixtureModel(3,2);
+        model.train(0.001,data);
 
         Matrix[] eigs1 = model.getGaussian(0).getCovarianceMatrix().calcEigenvectorsNonNorm();
         Matrix[] eigs2 = model.getGaussian(1).getCovarianceMatrix().calcEigenvectorsNonNorm();
 
-        System.out.println(model.getGaussian(0));
-        System.out.println(model.getGaussian(1));
+
+        Gaussian[] gaussians = model.getGaussians();
+        double[] x = new double[gaussians.length];
+        double[] y = new double[gaussians.length];
+        double[] eigsX = new double[gaussians.length*2];
+        double[] eigsY = new double[gaussians.length*2];
+        int eigTrack = 0;
+        for (int i = 0; i < gaussians.length; i++) {
+            x[i] = model.getGaussian(i).getMean().get(0,0);
+            y[i] = model.getGaussian(i).getMean().get(1,0);
+            Matrix[] eigs = model.getGaussian(i).getCovarianceMatrix().calcEigenvectors();
+            for (int j = 0; j < eigs.length; j++) {
+                Matrix vector = eigs[j];
+                eigsX[eigTrack] = vector.get(0,0);
+                eigsY[eigTrack] = vector.get(1,0);
+                eigTrack++;
+            }
+        }
+
+        ColesGrapher grapher = new ColesGrapher(xData,yData,x,y,eigsX,eigsY,2);
+        grapher.draw();
+
+/*
+        System.out.println(model.getGaussian(0).getMean());
+        System.out.println(model.getGaussian(1).getMean());
         System.out.println(Arrays.toString(eigs1));
         System.out.println();
         System.out.println(Arrays.toString(eigs2));
@@ -58,5 +73,18 @@ public class MainClass {
 
         new DylansGrapher(data,new BimodalModel(new Gaussian(0,90), new Gaussian(17,90)),true);
         System.out.println(divider);*/
+    }
+
+    public static int[] scaleData(int scaleTo, double[] data) {
+        double maxPt = 0;
+        for (int i = 0; i < data.length; i++) {
+            maxPt = Math.abs(Math.max(maxPt,data[i]));
+        }
+
+        int[] output = new int[data.length];
+        for (int i = 0; i < data.length; i++) {
+            output[i] = (int) Math.round(scaleTo*(data[i]/maxPt));
+        }
+        return output;
     }
 }

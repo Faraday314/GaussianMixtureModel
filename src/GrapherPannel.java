@@ -22,6 +22,7 @@ public class GrapherPannel extends JPanel {
     BimodalModel results;
     JFrame frame;
 
+
     int[] pointsAt;
 
     GrapherPannel(JFrame frame,double[] data, BimodalModel resaults, boolean grafFunc){
